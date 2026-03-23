@@ -1,0 +1,37 @@
+name: Auto Merge Upstream (Nightly)
+
+on:
+  schedule:
+    # 这里的触发时间是 UTC 时间。
+    # 19:00 UTC 相当于北京时间凌晨 3:00 / 日本时间凌晨 4:00
+    - cron: '0 19 */4 * *'
+  workflow_dispatch: # 保留手动触发按钮，方便你随时点击测试
+
+jobs:
+  merge-upstream:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 赋予 Action 推送代码的权限
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 获取完整历史记录以便合并
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge Upstream
+        run: |
+          # 添加原作者的仓库作为 upstream
+          git remote add upstream https://github.com/cmliu/edgetunnel.git
+          git fetch upstream
+          
+          # 尝试将原作者的 main 分支合并到你的当前分支，保留你的本地修改
+          git merge upstream/main --no-edit || echo "Notice: Merge conflict detected. Manual resolution may be required."
+          
+          # 推送更新到你的仓库
+          git push origin main
